@@ -5389,6 +5389,13 @@ class TorchLlmArgs(BaseLlmArgs):
         description="NVFP4 GEMM backend config.",
         status="beta")
 
+    enable_triton_moe_sum_topk: bool = Field(
+        default=False,
+        description=(
+            "Use the Triton top-k reduction for Marlin NVFP4 MoE "
+            "output combining instead of the ATen scatter-reduce tail."),
+        status="beta")
+
     dwdp_config: Optional[DwdpConfig] = Field(
         default=None,
         description="DWDP (Distributed Weight Data Parallelism) config.",

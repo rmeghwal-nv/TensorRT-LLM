@@ -252,6 +252,7 @@ class ModelConfig(Generic[TConfig]):
     # Default excludes 'cutedsl' for faster build time. Add 'cutedsl' for extreme perf.
     nvfp4_gemm_allowed_backends: List[str] = field(
         default_factory=lambda: ['cutlass', 'cublaslt', 'cuda_core'])
+    enable_triton_moe_sum_topk: bool = False
 
     allreduce_strategy: AllReduceStrategy = AllReduceStrategy.AUTO
 

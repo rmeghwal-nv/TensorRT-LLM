@@ -159,6 +159,20 @@ def is_nvfp4_marlin_enabled() -> bool:
     return is_supported_sm and has_marlin_kernel and is_marlin_specified
 
 
+def allow_triton_moe_sum_topk() -> bool:
+    """Whether the Triton fused top-k combine is enabled for Marlin NVFP4 MoE.
+
+    Default-off. Set ``enable_triton_moe_sum_topk=True`` via
+    ``TorchLlmArgs.enable_triton_moe_sum_topk`` to replace the ATen
+    ``torch.zeros / arange / index_add_`` scatter-reduce tail with a single
+    Triton launch over the contiguous ``[token, top_k, hidden]`` layout.
+    Only meaningful inside ``MarlinFusedMoE.forward()``; other MoE backends
+    use a different output layout and are not affected by this flag.
+    """
+    attrs = get_model_extra_attrs()
+    return bool(attrs and attrs.get('enable_triton_moe_sum_topk', False))
+
+
 @contextlib.contextmanager
 def model_extra_attrs(attrs: Dict):
     old_attrs = getattr(_model_extra_attrs, 'attrs', None)

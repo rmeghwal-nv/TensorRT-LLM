@@ -1555,6 +1555,7 @@ class ModelLoader:
             use_low_precision_moe_combine,
             nvfp4_gemm_allowed_backends=self.llm_args.nvfp4_gemm_config.
             allowed_backends,
+            enable_triton_moe_sum_topk=self.llm_args.enable_triton_moe_sum_topk,
             use_cute_dsl_blockscaling_mm=self.llm_args.
             use_cute_dsl_blockscaling_mm,
             use_cute_dsl_blockscaling_bmm=self.llm_args.
@@ -1585,6 +1586,8 @@ class ModelLoader:
             'nvfp4_gemm_allowed_backends'] = config.nvfp4_gemm_allowed_backends
         config.extra_attrs[
             'kv_cache_dtype'] = self.llm_args.kv_cache_config.dtype
+        config.extra_attrs['enable_triton_moe_sum_topk'] = (
+            config.enable_triton_moe_sum_topk)
         # Store allreduce pre-allocation config for AllReduce module access.
         # Use get_text_config() so VLM wrapper configs (e.g. KimiK2VLConfig,
         # KimiK25Config) that store the text config under .text_config are
