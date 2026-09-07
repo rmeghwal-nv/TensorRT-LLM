@@ -356,26 +356,11 @@ class MarlinFusedMoE(CutlassFusedMoE):
         # kernel maps each row to the correct expert without expanding again.
         num_tokens_gemm2 = num_tokens * top_k
 
-        # Build per-row expert assignment from the original topk_ids
-        gemm2_topk_ids = topk_ids.reshape(-1, 1)[:num_tokens_gemm2].contiguous()
-
-        max_padded_g2 = num_tokens_gemm2 + num_experts * _MOE_BLOCK_SIZE
-        sorted_ids_g2 = torch.empty(max_padded_g2, dtype=torch.int32, device=x.device)
-        expert_ids_g2 = torch.empty(
-            (max_padded_g2 + _MOE_BLOCK_SIZE - 1) // _MOE_BLOCK_SIZE,
-            dtype=torch.int32,
-            device=x.device,
-        )
-        num_post_pad_g2 = torch.empty(1, dtype=torch.int32, device=x.device)
-
-        torch.ops.trtllm.moe_align_block_size(
-            gemm2_topk_ids,
-            num_experts,
-            _MOE_BLOCK_SIZE,
-            sorted_ids_g2,
-            expert_ids_g2,
-            num_post_pad_g2,
-        )
+        # Reuse GEMM1 sort buffers: both GEMMs sort the same flat expert-ID
+        # array (topk_ids.reshape(-1)) with the same num_experts and
+        # block_size, so the second moe_align_block_size call is redundant.
+        # max_num_tokens_padded == num_tokens_gemm2 + num_experts * block_size,
+        # so the output buffer sizes are also identical.
 
         # topk_weights for gemm2: flatten to [num_tokens*top_k, 1] for top_k=1
         topk_weights_g2 = topk_weights.reshape(-1, 1)[:num_tokens_gemm2].contiguous()
@@ -386,9 +371,9 @@ class MarlinFusedMoE(CutlassFusedMoE):
             b_scales=self.w2_weight_scale,
             global_scale=self.fc2_alpha,
             workspace=workspace,
-            sorted_token_ids=sorted_ids_g2,
-            expert_ids=expert_ids_g2,
-            num_tokens_past_padded=num_post_pad_g2,
+            sorted_token_ids=sorted_token_ids,
+            expert_ids=expert_ids_out,
+            num_tokens_past_padded=num_tokens_post_pad,
             topk_weights=topk_weights_g2,
             moe_block_size=_MOE_BLOCK_SIZE,
             top_k=1,
